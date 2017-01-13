@@ -170,48 +170,12 @@ public class OracleDialect extends DefaultDialect {
         @Override
         public Object convert(ResultSet rs, ResultSetMetaData rsmd, int columnIndex) throws SQLException {
             switch (rsmd.getColumnType(columnIndex)) {
-                case Types.NUMERIC:
-                    return getNumberType(rs, rsmd, columnIndex);
                 case Types.TIMESTAMP:
                     return rs.getTimestamp(columnIndex);
                 case Types.DATE:
                     return rs.getTimestamp(columnIndex);
                 default:
                     return rs.getObject(columnIndex);
-            }
-        }
-
-        /**
-         * 数値型のカラムの取得を行う。
-         * <p/>
-         * 小数部有りの場合には、{@link java.math.BigDecimal}で取得する。
-         * 小数部なしで、桁数が9桁以下の場合には、{@link Integer}で取得する。
-         * 上記に該当しない場合には、{@link Long}で取得する。
-         *
-         * @param rs {@link ResultSet}
-         * @param rsmd {@link ResultSetMetaData}
-         * @param columnIndex カラムインデックス
-         * @return 数値型カラムの値
-         * @throws SQLException データベース関連の例外
-         */
-        private static Number getNumberType(ResultSet rs, ResultSetMetaData rsmd, int columnIndex) throws SQLException {
-            if (rsmd.getScale(columnIndex) == 0) {
-                // 少数部なしのカラム
-                if (rsmd.getPrecision(columnIndex) <= 9) {
-                    final int asInt = rs.getInt(columnIndex);
-                    if (rs.wasNull()) {
-                        return null;
-                    }
-                    return asInt;
-                } else {
-                    final long asLong = rs.getLong(columnIndex);
-                    if (rs.wasNull()) {
-                        return null;
-                    }
-                    return asLong;
-                }
-            } else {
-                return rs.getBigDecimal(columnIndex);
             }
         }
 

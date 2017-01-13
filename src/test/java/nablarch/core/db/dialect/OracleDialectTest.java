@@ -167,10 +167,9 @@ public class OracleDialectTest {
         }
 
         assertThat("文字列はStringで取得できる", (String) convertor.convert(rs, meta, 2), is("12345"));
-        assertThat("数値型はIntegerで取得できる", (Integer) convertor.convert(rs, meta, 3), is(Integer.valueOf("100")));
-        assertThat("10桁以上の数値型はLongで取得できる", (Long) convertor.convert(rs, meta, 4), is(Long.valueOf("1234554321")));
-        assertThat("小数部ありはBigDecimalで取得できる", (BigDecimal) convertor.convert(rs, meta, 5), is(new BigDecimal(
-                "12345.54321")));
+        assertThat("数値型はgetObjectで取得する(9桁)", convertor.convert(rs, meta, 3), is(rs.getObject(3)));
+        assertThat("数値型はgetObjectで取得する(10桁)", convertor.convert(rs, meta, 4), is(rs.getObject(4)));
+        assertThat("数値型はgetObjectで取得する(小数)", convertor.convert(rs, meta, 5), is(rs.getObject(5)));
         assertThat("DATE型はTimestampで取得できる", (Timestamp) convertor.convert(rs, meta, 6), is(new Timestamp(
                 date.getTime())));
         assertThat("TIMESTAMP型はTimestampで取得できる", (Timestamp) convertor.convert(rs, meta, 7), is(timestamp));

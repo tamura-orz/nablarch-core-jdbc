@@ -3443,6 +3443,16 @@ public abstract class BasicSqlPStatementTestLogic {
                 logMessages.toString()));
     }
 
+    @Test
+    public void testUseSqlFunction() throws Exception {
+        final SqlPStatement sut = dbCon.prepareStatement(
+                "SELECT  sum(1.1) RET FROM STATEMENT_TEST_TABLE"
+        );
+        SqlResultSet actual = sut.retrieve();
+
+        assertThat(actual.get(0).getBigDecimal("ret"), is(new BigDecimal("3.3")));
+    }
+
     /**
      * 任意のDialectをテスト用のコネクションに設定する。
      */
