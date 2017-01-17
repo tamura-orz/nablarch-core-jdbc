@@ -3443,14 +3443,43 @@ public abstract class BasicSqlPStatementTestLogic {
                 logMessages.toString()));
     }
 
+    /**
+     * SQLの関数を使ったときに小数(BigDecimal)で取得できること。
+     */
     @Test
-    public void testUseSqlFunction() throws Exception {
+    public void testUseSqlFunctionBigDecimal() throws Exception {
         final SqlPStatement sut = dbCon.prepareStatement(
                 "SELECT  sum(1.1) RET FROM STATEMENT_TEST_TABLE"
         );
         SqlResultSet actual = sut.retrieve();
 
         assertThat(actual.get(0).getBigDecimal("ret"), is(new BigDecimal("3.3")));
+    }
+
+    /**
+     * SQLの関数を使ったときに整数(Integer)で取得できること。
+     */
+    @Test
+    public void testUseSqlFunctionInteger() throws Exception {
+        final SqlPStatement sut = dbCon.prepareStatement(
+                "SELECT sum(10) RET FROM STATEMENT_TEST_TABLE"
+        );
+        SqlResultSet actual = sut.retrieve();
+
+        assertThat(actual.get(0).getInteger("ret"), is(30));
+    }
+
+    /**
+     * SQLの関数を使ったときに整数(Long)で取得できること。
+     */
+    @Test
+    public void testUseSqlFunctionLong() throws Exception {
+        final SqlPStatement sut = dbCon.prepareStatement(
+                "SELECT sum(10000000000) RET FROM STATEMENT_TEST_TABLE"
+        );
+        SqlResultSet actual = sut.retrieve();
+
+        assertThat(actual.get(0).getLong("ret"), is(30000000000L));
     }
 
     /**
