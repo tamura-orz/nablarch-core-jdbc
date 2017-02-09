@@ -7,14 +7,25 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
+import nablarch.core.repository.SystemRepository;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
+import mockit.Mock;
+import mockit.MockUp;
 
 /**
  * {@link DbUtil}のテストクラス。
@@ -22,6 +33,15 @@ import org.junit.Test;
  * @author hisaaki sioiri
  */
 public class DbUtilTest {
+    @Before
+    public void setUp() throws Exception {
+        SystemRepository.clear();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        SystemRepository.clear();
+    }
 
     /**
      * {@link DbUtil#isArrayObject(Object)}のテスト。
@@ -166,6 +186,134 @@ public class DbUtilTest {
                                                          .getTime()));
     }
 
+    /**
+     * {@link DbUtil#getField(Object, String)} のテスト
+     * @throws Exception
+     */
+    @Test
+    public void testGetFiled() throws Exception {
+        Object grandObjectValue = new Object();
+        Object parentObjectValue = new Object();
+        Object objectValue = new Object();
+        DbUtilTestEntity bean = new DbUtilTestEntity(
+                "grandPrivateStringValue", -3, -2L, grandObjectValue,
+                "parentPrivateStringValue", -1, 0L, parentObjectValue,
+                "privateStringValue", 1, 2L, objectValue);
+        assertThat("親の親のprivateフィールドへのアクセス", (String)DbUtil.getField(bean, "grandPrivateString"), is("grandPrivateStringValue"));
+        assertThat("親の親のprotectedフィールドへのアクセス", (Integer)DbUtil.getField(bean, "grandProtectedInt"), is(-3));
+        assertThat("親の親のdefaultフィールドへのアクセス", (Long)DbUtil.getField(bean,"grandDefaultLong"), is(-2L));
+        assertThat("親の親のpublicフィールドへのアクセス", DbUtil.getField(bean, "grandPublicObject"), is(grandObjectValue));
+        assertThat("親の親のprivateフィールドへのアクセス", (String)DbUtil.getField(bean, "parentPrivateString"), is("parentPrivateStringValue"));
+        assertThat("親のprotectedフィールドへのアクセス", (Integer)DbUtil.getField(bean, "parentProtectedInt"), is(-1));
+        assertThat("親のdefaultフィールドへのアクセス", (Long)DbUtil.getField(bean,"parentDefaultLong"), is(0L));
+        assertThat("親のpublicフィールドへのアクセス", DbUtil.getField(bean, "parentPublicObject"), is(parentObjectValue));
+        assertThat("privateフィールドへのアクセス", (String)DbUtil.getField(bean, "privateString"), is("privateStringValue"));
+        assertThat("protectedフィールドへのアクセス", (Integer)DbUtil.getField(bean, "protectedInt"), is(1));
+        assertThat("defaultフィールドへのアクセス", (Long)DbUtil.getField(bean,"defaultLong"), is(2L));
+        assertThat("publicフィールドへのアクセス", DbUtil.getField(bean, "publicObject"), is(objectValue));
+    }
+
+    /**
+     * {@link DbUtil#getField(Object, String)} の異常系テスト
+     * @throws Exception
+     */
+    @Test
+    public void testGetFiledError() throws Exception {
+        Object grandObjectValue = new Object();
+        Object parentObjectValue = new Object();
+        Object objectValue = new Object();
+        DbUtilTestEntity bean = new DbUtilTestEntity(
+                "grandPrivateStringValue", -3, -2L, grandObjectValue,
+                "parentPrivateStringValue", -1, 0L, parentObjectValue,
+                "privateStringValue", 1, 2L, objectValue);
+        try {
+            DbUtil.getField(bean, "notExistingField");
+            fail("Should not reach here.");
+        } catch (IllegalArgumentException e) {
+            assertThat("存在しないフィールドへのアクセスでは例外を送出", e.getMessage(),
+                    is("specified filed [notExistingField] is not declared in the class [nablarch.core.db.util.DbUtilTest$DbUtilTestEntity]."));
+        }
+    }
+
+    /**
+     * {@link DbUtil#getField(Object, String)} の異常系テスト
+     * IllegalAccessExceptionは通常発生しないため、Mockを使って送出している。
+     * @throws Exception
+     */
+    @Test
+    public void testGetFiledErrorIllegalAccessException(/*@Mocked final Field mockedField*/) throws Exception {
+        Object grandObjectValue = new Object();
+        Object parentObjectValue = new Object();
+        Object objectValue = new Object();
+        final DbUtilTestEntity bean = new DbUtilTestEntity(
+                "grandPrivateStringValue", -3, -2L, grandObjectValue,
+                "parentPrivateStringValue", -1, 0L, parentObjectValue,
+                "privateStringValue", 1, 2L, objectValue);
+        final String fieldName = "privateString";
+        new MockUp<DbUtil>() {
+            @Mock
+            private Field findDeclaredField(final Class<?> clazz, final String fieldName) throws IllegalAccessException
+            {
+                throw new IllegalAccessException();
+            }
+        };
+        try {
+            Object value = DbUtil.getField(bean, fieldName);
+        }
+        catch(RuntimeException e)
+        {
+            assertThat("メッセージが一致するか", e.getMessage(),
+                    is("failed to access the filed [privateString]  of the class [nablarch.core.db.util.DbUtilTest$DbUtilTestEntity].") );
+        }
+    }
+
+    /**
+     * {@link DbUtil#createMapAndCopy(Object)} のテスト
+     * @throws Exception
+     */
+    @Test
+    public void testCreateMapAndCopy() throws Exception {
+        Object grandObjectValue = new Object();
+        Object parentObjectValue = new Object();
+        Object objectValue = new Object();
+        DbUtilTestEntity bean = new DbUtilTestEntity(
+                "grandPrivateStringValue", -3, -2L, grandObjectValue,
+                "parentPrivateStringValue", -1, 0L, parentObjectValue,
+                "privateStringValue", 1, 2L, objectValue);
+        Map<String, Object> expect = new HashMap<String, Object>();
+        expect.put("grandPrivateString", "grandPrivateStringValue");
+        expect.put("grandProtectedInt", -3);
+        expect.put("grandDefaultLong", -2L);
+        expect.put("grandPublicObject", grandObjectValue);
+        expect.put("parentPrivateString", "parentPrivateStringValue");
+        expect.put("parentProtectedInt", -1);
+        expect.put("parentDefaultLong", 0L);
+        expect.put("parentPublicObject", parentObjectValue);
+        expect.put("privateString", "privateStringValue");
+        expect.put("protectedInt", 1);
+        expect.put("defaultLong", 2L);
+        expect.put("publicObject", objectValue);
+        expect.put("duplicateFieldName", "ChildField");//重複したフィールドの場合、一番下のサブクラスが優先されることの確認。
+        Map<String, Object> actual = DbUtil.createMapAndCopy(bean);
+        compareMaps(expect, actual);
+    }
+
+    /**
+     * マップの内容を比較する。
+     * @param expect 期待するマップ
+     * @param actual 実際のマップ
+     */
+    private static void compareMaps(Map<String, Object> expect, Map<String,Object> actual) {
+        String message = "\nExpected: is <" + expect.toString() + ">\n but: was <" + actual.toString() + ">";
+        Set<String> keys = actual.keySet();
+        Set<String> expectKeys = expect.keySet();
+        for (String key : keys) {
+            assertThat("マップの内容が一致 key=" + key + message, expect.get(key), is(actual.get(key)));
+            assertThat("キーが存在しない key="  + key, expectKeys.remove(key), is(true));
+        }
+        assertThat("マップのキーがすべて同じ " + message, expectKeys.size(), is(0));
+    }
+
     private static class StringCollection implements Collection<String> {
 
         private int size = 0;
@@ -223,4 +371,58 @@ public class DbUtilTest {
         public void clear() {
         }
     }
+
+    public static class DbUtilTestEntity extends DbUtilTestEntityParent {
+        private String privateString;
+        protected int protectedInt;
+        long defaultLong;
+        public Object publicObject;
+        private String duplicateFieldName = "ChildField";
+
+        public DbUtilTestEntity(
+                String grandPrivateString, int grandProtectedInt, long grandDefaultLong, Object grandPublicObject,
+                String parentPrivateString, int parentPrtotectedInt, long parentDefaultLong, Object parentPublicObject,
+                String privateString, int protectedInt, long defaultLong, Object publicObject) {
+            super( grandPrivateString, grandProtectedInt,grandDefaultLong, grandPublicObject,
+                    parentPrivateString, parentPrtotectedInt, parentDefaultLong, parentPublicObject);
+            this.privateString = privateString;
+            this.protectedInt = protectedInt;
+            this.defaultLong = defaultLong;
+            this.publicObject = publicObject;
+        }
+    }
+    public static class DbUtilTestEntityParent extends DbUtilTestEntityGrandParent{
+        //親のフィールドを取るテストのためのEntity
+        private String parentPrivateString;
+        protected int parentProtectedInt;
+        long parentDefaultLong;
+        public Object parentPublicObject;
+        private String duplicateFieldName =  "ParentField";;
+
+        public DbUtilTestEntityParent(
+                String grandPrivateString, int grandProtectedInt, long grandDefaultLong, Object grandPublicObject,
+                String parentPrivateString, int parentProtectedInt, long parentDefaultLong, Object parentPublicObject) {
+            super(grandPrivateString, grandProtectedInt,grandDefaultLong, grandPublicObject);
+            this.parentPrivateString = parentPrivateString;
+            this.parentProtectedInt = parentProtectedInt;
+            this.parentDefaultLong = parentDefaultLong;
+            this.parentPublicObject = parentPublicObject;
+        }
+    }
+    public static class DbUtilTestEntityGrandParent {
+        //親の親のフィールドを取るテストのためのEntity
+        private String grandPrivateString;
+        protected int grandProtectedInt;
+        long grandDefaultLong;
+        public Object grandPublicObject;
+        private String duplicateFieldName = "GrandParentField";;
+
+        public DbUtilTestEntityGrandParent(String grandPrivateString, int grandProtectedInt, long grandDefaultLong, Object grandPublicObject) {
+            this.grandPrivateString = grandPrivateString;
+            this.grandProtectedInt = grandProtectedInt;
+            this.grandDefaultLong = grandDefaultLong;
+            this.grandPublicObject = grandPublicObject;
+        }
+    }
+
 }

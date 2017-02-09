@@ -11,14 +11,17 @@ import java.util.Set;
 import org.junit.Test;
 
 /**
- * {@link VariableConditionSyntaxConvertor}のテストクラス。
+ * {@link VariableConditionSyntaxConvertor}の抽象テストクラス。
+ * 継承先で、getterアクセス、fieldアクセスをそれぞれテストする。
  */
-public class VariableConditionSyntaxConvertorTest {
+public abstract class VariableConditionSyntaxConvertorTestLogic {
 
     private VariableConditionSyntaxConvertor sut = new VariableConditionSyntaxConvertor();
 
+    /**
+     * テスト用のBean
+     */
     public static class TestBean {
-
         private String prop = "value";
         private Set<Integer> integerSet;
         private List<String> stringList;
@@ -38,6 +41,22 @@ public class VariableConditionSyntaxConvertorTest {
 
         public Long[] getLongArray() {
             return longArray;
+        }
+
+        public void setProp(final String prop) {
+            this.prop = prop;
+        }
+
+        public void setIntegerSet(final Set<Integer> integerSet) {
+            this.integerSet = integerSet;
+        }
+
+        public void setStringList(final List<String> stringList) {
+            this.stringList = stringList;
+        }
+
+        public void setLongArray(final Long[] longArray) {
+            this.longArray = longArray;
         }
     }
 
@@ -69,7 +88,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testHasNullValue() throws Exception {
         final TestBean bean = new TestBean();
-        bean.prop = null;
+        bean.setProp( null );
         final String result = sut.convert("where col = ? and $if(prop) {column = :prop} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 0 or (column = :prop)) and col = ?"));
     }
@@ -82,7 +101,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testHasEmptyString() throws Exception {
         final TestBean bean = new TestBean();
-        bean.prop = "";
+        bean.setProp( "" );
         final String result = sut.convert("where col = ? and $if(prop) {column = :prop} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 0 or (column = :prop)) and col = ?"));
     }
@@ -95,7 +114,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testCollection() throws Exception {
         final TestBean bean = new TestBean();
-        bean.integerSet = Collections.singleton(100);
+        bean.setIntegerSet( Collections.singleton(100) );
         final String result = sut.convert("where col = ? and $if(integerSet) {column = :integerSet[0]} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 1 or (column = :integerSet[0])) and col = ?"));
     }
@@ -106,7 +125,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testCollectionAndHasEmptyString() throws Exception {
         final TestBean bean = new TestBean();
-        bean.stringList = Collections.singletonList("");
+        bean.setStringList( Collections.singletonList("") );
 
         final String result = sut.convert("where col = ? and $if(stringList) {column = :stringList[0]} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 1 or (column = :stringList[0])) and col = ?"));
@@ -118,7 +137,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testCollectionAndNotAllowEmptyString_EmptyString() throws Exception {
         final TestBean bean = new TestBean();
-        bean.stringList = Collections.singletonList("");
+        bean.setStringList( Collections.singletonList("") );
 
         sut.setAllowArrayEmptyString(false);
 
@@ -132,7 +151,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testCollectionAndNotAllowEmptyString_Null() throws Exception {
         final TestBean bean = new TestBean();
-        bean.stringList = Collections.singletonList(null);
+        bean.setStringList(Collections.<String>singletonList(null));
         sut.setAllowArrayEmptyString(false);
 
         final String result = sut.convert("where col = ? and $if(stringList) {column = :stringList[0]} and col = ?", bean);
@@ -146,7 +165,7 @@ public class VariableConditionSyntaxConvertorTest {
     public void tetCollectionAndNotAllowEmptyString_HasValue() throws Exception {
         sut.setAllowArrayEmptyString(false);
         final TestBean bean = new TestBean();
-        bean.stringList = Collections.singletonList("1");
+        bean.setStringList( Collections.singletonList("1") );
 
         final String result = sut.convert("where col = ? and $if(stringList) {column = :stringList[0]} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 1 or (column = :stringList[0])) and col = ?"));
@@ -158,7 +177,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testCollectionEmpty() throws Exception {
         final TestBean bean = new TestBean();
-        bean.stringList = Collections.emptyList();
+        bean.setStringList(Collections.<String>emptyList());
 
         final String result = sut.convert("where col = ? and $if(stringList) {column = :stringList[0]} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 0 or (column = :stringList[0])) and col = ?"));
@@ -170,7 +189,7 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testCollectionMultiElement() throws Exception {
         final TestBean bean = new TestBean();
-        bean.stringList = Arrays.asList("1", "2");
+        bean.setStringList( Arrays.asList("1", "2") );
 
         final String result = sut.convert("where col = ? and $if(stringList) {column = :stringList[0]} and col = ?", bean);
         assertThat(result, is("where col = ? and (0 = 1 or (column = :stringList[0])) and col = ?"));
@@ -182,8 +201,8 @@ public class VariableConditionSyntaxConvertorTest {
     @Test
     public void testMultipleIfCondition() throws Exception {
         final TestBean bean = new TestBean();
-        bean.longArray = new Long[] {1L};
-        bean.prop = null;
+        bean.setLongArray( new Long[] {1L} );
+        bean.setProp( null );
 
         final String result = sut.convert("where $if (longArray) {prop1 = :longArray} and name = :name and $if (prop) {prop2 = :prop}", bean);
         assertThat(result, is("where (0 = 1 or (prop1 = :longArray)) and name = :name and (0 = 0 or (prop2 = :prop))"));
