@@ -5,6 +5,7 @@ import java.util.Map;
 import nablarch.core.beans.BeanUtil;
 import nablarch.core.beans.BeansException;
 import nablarch.core.db.statement.SqlConvertor;
+import nablarch.core.db.util.DbUtil;
 import nablarch.core.util.annotation.Published;
 
 /**
@@ -27,14 +28,18 @@ public abstract class SqlConvertorSupport implements SqlConvertor {
             // バインド変数に対応するフィールドの値(Mapのvalue)を取得する。
             return getMapObject((Map<?, ?>) obj, fieldName);
         } else {
-            try {
-                return BeanUtil.getProperty(obj, fieldName);
-            } catch (BeansException e) {
-                throw new IllegalArgumentException("failed to get " + fieldName + " property.", e);
+            if(DbUtil.isFieldAccess()) {
+                return DbUtil.getField(obj, fieldName);
+            } else {
+                try {
+                    return BeanUtil.getProperty(obj, fieldName);
+                } catch (BeansException e) {
+                    throw new IllegalArgumentException("failed to get " + fieldName + " property.", e);
+                }
             }
         }
     }
-    
+
     /**
      * MapのValue値を取得し返却する。
      *

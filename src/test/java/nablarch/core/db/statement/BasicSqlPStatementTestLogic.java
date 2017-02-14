@@ -2,7 +2,9 @@ package nablarch.core.db.statement;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -42,8 +44,11 @@ import nablarch.core.db.connection.TransactionManagerConnection;
 import nablarch.core.db.dialect.DefaultDialect;
 import nablarch.core.db.dialect.Dialect;
 import nablarch.core.db.statement.exception.SqlStatementException;
+import nablarch.core.db.util.DbUtil;
 import nablarch.core.exception.IllegalOperationException;
 import nablarch.core.log.Logger;
+import nablarch.core.repository.ObjectLoader;
+import nablarch.core.repository.SystemRepository;
 import nablarch.core.transaction.TransactionContext;
 import nablarch.test.support.db.helper.TargetDb;
 import nablarch.test.support.db.helper.VariousDbTestHelper;
@@ -185,6 +190,23 @@ public abstract class BasicSqlPStatementTestLogic {
         }
     }
 
+    /**
+     * fieldアクセスして検索、更新を行うためのクラス
+     */
+    public static class TestFieldEntity {
+        public String id;
+        public String varcharCol;
+        public Long longCol;
+        public Date dateCol;
+        public Timestamp timestampCol;
+        public Time timeCol;
+        public BigDecimal decimalCol;
+        public byte[] binaryCol;
+        public Integer integerCol;
+        public Float floatCol;
+        public Boolean booleanCol;
+        public String[] varchars;
+    }
 
     /**
      * テスト対象となる{@link nablarch.core.db.connection.ConnectionFactory}を生成する。
@@ -206,6 +228,7 @@ public abstract class BasicSqlPStatementTestLogic {
     @After
     public void terminateDb() {
         dbCon.terminate();
+        SystemRepository.clear();
     }
 
     @Before
@@ -2726,16 +2749,55 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object() throws Exception {
+        doRetrieve_object(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(Object)}のテスト。(Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_objectViaFieldAccess() throws Exception {
+        doRetrieve_object(true);
+    }
+
+
+    private void doRetrieve_object(boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID = :id");
 
-        final TestEntity condition = new TestEntity();
-        condition.id = "10002";
+        Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "10002";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "10002";
+            condition = entity;
+        }
 
         final SqlResultSet actual = sut.retrieve(condition);
         assertThat("1レコード取得できること", actual.size(), is(1));
         assertThat(actual.get(0)
                 .getString("entityId"), is("10002"));
+    }
+
+    /**
+     * fieldアクセスモードに変更する。
+     */
+    private void setFieldAccessMode() {
+        //fieldアクセス
+        SystemRepository.load(new ObjectLoader() {
+            @Override
+            public Map<String, Object> load() {
+                final Map<String, Object> map = new HashMap<String,Object>();
+                map.put("nablarch.dbAccess.isFieldAccess", "true");
+                return map;
+            }
+        });
+        assertThat("Fieldアクセスか", DbUtil.isFieldAccess(), is(true));
+
     }
 
     public static class WithEnum {
@@ -2778,11 +2840,31 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_withOption() throws Exception {
+        doRetrieve_object_withOption(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(Object)}のテスト。(Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_withOptionViaFieldAccess() throws Exception {
+        doRetrieve_object_withOption(true);
+    }
+
+    private void doRetrieve_object_withOption(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID > :id ORDER BY ENTITY_ID", new SelectOption(2, 3));
-        final TestEntity condition = new TestEntity();
-        condition.id = "1";
-
+        Object condition;
+        if(!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "1";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "1";
+            condition = entity;
+        }
         final SqlResultSet actual = sut.retrieve(condition);
         assertThat("2レコード取得できること", actual.size(), is(2));
         assertThat(actual.get(0)
@@ -2796,11 +2878,31 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_withOffsetAndLimit() throws Exception {
+        doRetrieve_object_withOffsetAndLimit(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Object)}のテスト。(Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_withOffsetAndLimitViaFieldAccess() throws Exception {
+        doRetrieve_object_withOffsetAndLimit(false);
+    }
+
+    private void doRetrieve_object_withOffsetAndLimit(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID <= :id ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "10002";
+        Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "10002";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "10002";
+            condition = entity;
+        }
 
         final SqlResultSet firstRow = sut.retrieve(1, 1, condition);
         assertThat("1レコード取得できること", firstRow.size(), is(1));
@@ -2822,10 +2924,29 @@ public abstract class BasicSqlPStatementTestLogic {
 
     @Test(expected = IllegalOperationException.class)
     public void retrieve_object_withDuplicatePagenate() {
+        doRetrieve_object_withDuplicatePagenate(false);
+    }
+
+    @Test(expected = IllegalOperationException.class)
+    public void retrieve_object_withDuplicatePagenateViaFieldAccess() {
+        doRetrieve_object_withDuplicatePagenate(true);
+    }
+
+    private void doRetrieve_object_withDuplicatePagenate(final boolean isFieldAccess)
+    {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID > :id ORDER BY ENTITY_ID", new SelectOption(2, 3));
-        final TestEntity condition = new TestEntity();
-        condition.id = "1";
+        Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "1";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "1";
+            condition = entity;
+        }
         sut.retrieve(1, 2, condition);
     }
 
@@ -2834,11 +2955,31 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_writeSqlLog() throws Exception {
+        doRetrieve_object_writeSqlLog(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(Object)}のSQLログのテスト。(Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_writeSqlLogViaFieldAccess() throws Exception {
+        doRetrieve_object_writeSqlLog(true);
+    }
+
+    private void doRetrieve_object_writeSqlLog(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID <= :id ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "10002";
+        Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "10002";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "10002";
+            condition = entity;
+        }
         sut.setFetchSize(123);
         sut.setQueryTimeout(30);
         sut.retrieve(condition);
@@ -2864,11 +3005,31 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_with_likeForwardMatch() throws Exception {
+        doRetrieve_object_with_likeForwardMatch(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Object)}の前方一致のテスト (Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_with_likeForwardMatchViaFieldAccess() throws Exception {
+        doRetrieve_object_with_likeForwardMatch(true);
+    }
+
+    private void doRetrieve_object_with_likeForwardMatch(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID LIKE :id% ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "1";
+        final Object condition;
+        if(!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "1";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "1";
+            condition = entity;
+        }
         final SqlResultSet actual = sut.retrieve(1, 2, condition);
         assertThat(actual.size(), is(2));
         assertThat(actual.get(0)
@@ -2882,11 +3043,32 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_with_likePartialMatch() throws Exception {
+        doRetrieve_object_with_likePartialMatch(false);
+    }
+
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Object)}の部分一致のテスト (Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_with_likePartialMatchViaFieldAccess() throws Exception {
+        doRetrieve_object_with_likePartialMatch(true);
+    }
+
+    private void doRetrieve_object_with_likePartialMatch(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID LIKE :%id% ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "000";
+        final Object condition;
+        if(!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "000";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "000";
+            condition = entity;
+        }
         final SqlResultSet actual = sut.retrieve(condition);
         assertThat(actual.size(), is(3));
 
@@ -2904,11 +3086,33 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_with_likeBackwardMatch() throws Exception {
+        //doRetrieve_object_with_likeBackwardMatch
+        doRetrieve_object_with_likeBackwardMatch(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Object)}の後方一致のテスト (Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_with_likeBackwardMatchViaFieldAccess() throws Exception {
+        //doRetrieve_object_with_likeBackwardMatch
+        doRetrieve_object_with_likeBackwardMatch(true);
+    }
+
+    private void doRetrieve_object_with_likeBackwardMatch(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID LIKE :%id ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "0002";
+        final Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "0002";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "0002";
+            condition = entity;
+        }
         final SqlResultSet actual = sut.retrieve(condition);
         assertThat(actual.size(), is(1));
 
@@ -2921,11 +3125,31 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_object_with_likeWithEscapeChar() throws Exception {
+        doRetrieve_object_with_likeWithEscapeChar(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Object)}のLIKE検索でエスケープ対象の文字が含まれている場合 (Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_object_with_likeWithEscapeCharViaFieldAccess() throws Exception {
+        doRetrieve_object_with_likeWithEscapeChar(true);
+    }
+
+    private void doRetrieve_object_with_likeWithEscapeChar(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE VARCHAR_COL LIKE :id% ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "c_\\";
+        final Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "c_\\";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "c_\\";
+            condition = entity;
+        }
         final SqlResultSet actual = sut.retrieve(condition);
         assertThat(actual.size(), is(1));
 
@@ -2933,18 +3157,38 @@ public abstract class BasicSqlPStatementTestLogic {
                 .getString("entityId"), is("10003"));
     }
 
-
     /**
      * {@link BasicSqlPStatement#retrieve(int, int, Object)}で、条件の名前付きパラメータがオブジェクトのフィールド
      * に存在しない場合、例外が送出されること。
      */
     @Test
     public void retrieve_object_invalidProperty() throws Exception {
+        doRetrieve_object_invalidProperty(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Object)}で、条件の名前付きパラメータがオブジェクトのフィールド (Fieldアクセステスト用)
+     * に存在しない場合、例外が送出されること。
+     */
+    @Test
+    public void retrieve_object_invalidPropertyViaFieldAccess() throws Exception {
+        doRetrieve_object_invalidProperty(true);
+    }
+
+    private void doRetrieve_object_invalidProperty(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID = :id AND VARCHAR_COL = :invalid ORDER BY ENTITY_ID");
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "0002";
+        final Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "0002";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "0002";
+            condition = entity;
+        }
         try {
             sut.retrieve(condition);
             fail("とおらない");
@@ -2960,6 +3204,20 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test(expected = DbAccessException.class)
     public void retrieve_object_SQLException(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doRetrieve_object_SQLException(mockStatement, false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(int, int, Map)}で、条件の名前付きパラメータがMapに存在しない場合、
+     * 例外が送出されること。(Fieldアクセステスト用)
+     */
+    @Test(expected = DbAccessException.class)
+    public void retrieve_object_SQLExceptionViaFieldAccess(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doRetrieve_object_SQLException(mockStatement, true);
+    }
+
+    private void doRetrieve_object_SQLException(@Mocked final PreparedStatement mockStatement, final boolean isFieldAccess) throws
+            SQLException {
         new Expectations() {{
             mockStatement.setObject(anyInt, any);
             result = new SQLException("retrieve map error");
@@ -2967,13 +3225,21 @@ public abstract class BasicSqlPStatementTestLogic {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID = :id AND VARCHAR_COL = :varcharCol ORDER BY ENTITY_ID");
         Deencapsulation.setField(sut, mockStatement);
-
-        final TestEntity condition = new TestEntity();
-        condition.id = "10002";
-        condition.varcharCol = "b";
+        final Object condition;
+        if (!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "10002";
+            entity.varcharCol = "b";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "10002";
+            entity.varcharCol = "b";
+            condition = entity;
+        }
         sut.retrieve(condition);
     }
-
 
     /**
      * {@link BasicSqlPStatement#executeQueryByMap(Map)}のテスト。
@@ -3016,16 +3282,36 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void executeQueryByObject() throws Exception {
+        doExecuteQueryByObject(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#executeQueryByObject(Object)}  (Fieldアクセステスト用)
+     * @throws Exception
+     */
+    @Test
+    public void executeQueryByObjectViaFieldAccess() throws Exception {
+        doExecuteQueryByObject(true);
+    }
+
+    private void doExecuteQueryByObject(final boolean isFieldAccess)
+    {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID = :id");
-
-        final TestEntity entity = new TestEntity();
-        entity.id = "10002";
-
-        final ResultSetIterator actual = sut.executeQueryByObject(entity);
+        final Object data;
+        if(!isFieldAccess){
+            TestEntity entity = new TestEntity();
+            entity.id = "10002";
+            data = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "10002";
+            data = entity;
+        }
+        final ResultSetIterator actual = sut.executeQueryByObject(data);
         assertThat(actual.next(), is(true));
-        assertThat(actual.getRow()
-                .getString("entityId"), is("10002"));
+        assertThat(actual.getRow().getString("entityId"), is("10002"));
         assertThat(actual.next(), is(false));
     }
 
@@ -3034,18 +3320,40 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test(expected = SqlStatementException.class)
     public void executeQueryByObject_SQLException(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doExecuteQueryByObject_SQLException(mockStatement, false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#executeQueryByObject(Object)}のSQLExceptionのテスト。(Fieldアクセステスト用)
+     */
+    @Test(expected = SqlStatementException.class)
+    public void executeQueryByObject_SQLExceptionViaFieldAccess(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doExecuteQueryByObject_SQLException(mockStatement, true);
+    }
+
+    private void doExecuteQueryByObject_SQLException(final PreparedStatement mockStatement, final boolean isFieldAccess) throws
+            SQLException {
         new Expectations() {{
             mockStatement.setObject(anyInt, any);
             result = new SQLException("executeQuery object error");
         }};
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID = :id");
-
         Deencapsulation.setField(sut, mockStatement);
 
-        final TestEntity entity = new TestEntity();
-        entity.id = "10002";
-        sut.executeQueryByObject(entity);
+        final Object data;
+        if(!isFieldAccess){
+            final TestEntity entity = new TestEntity();
+            entity.id = "10002";
+            data = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "10002";
+            data = entity;
+        }
+
+        sut.executeQueryByObject(data);
     }
 
     /**
@@ -3095,13 +3403,36 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void executeUpdateByObject() throws Exception {
+        doExecuteUpdateByObject(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#executeUpdateByObject(Object)}のテスト。(Fieldアクセステスト用)
+     */
+    @Test
+    public void executeUpdateByObjectViaFieldAccess() throws Exception {
+        doExecuteUpdateByObject(true);
+    }
+
+    protected void doExecuteUpdateByObject(final boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "INSERT INTO STATEMENT_TEST_TABLE (ENTITY_ID, LONG_COL, BINARY_COL) VALUES (:id, :longCol, :binaryCol)");
+        final Object data;
         final TestEntity entity = new TestEntity();
         entity.id = "44444";
         entity.longCol = 100L;
-        entity.binaryCol = new byte[]{0x00, 0x01};
-        final int result = sut.executeUpdateByObject(entity);
+        entity.binaryCol = new byte[] {0x00, 0x01};
+        if(!isFieldAccess) {
+            data = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity fieldEntity = new TestFieldEntity();
+            fieldEntity.id = "44444";
+            fieldEntity.longCol = 100L;
+            fieldEntity.binaryCol = new byte[] {0x00, 0x01};
+            data = fieldEntity;
+        }
+        final int result = sut.executeUpdateByObject(data);
         dbCon.commit();
 
         final TestEntity actual = VariousDbTestHelper.findById(TestEntity.class, "44444");
@@ -3115,6 +3446,19 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test(expected = SqlStatementException.class)
     public void executeUpdateByObject_SQLException(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doExecuteUpdateByObject_SQLException(mockStatement, false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#executeUpdateByObject(Object)}のテスト。(Fieldアクセステスト用)
+     */
+    @Test(expected = SqlStatementException.class)
+    public void executeUpdateByObject_SQLExceptionViaFieldAccess(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doExecuteUpdateByObject_SQLException(mockStatement, true);
+    }
+
+    private void doExecuteUpdateByObject_SQLException(final PreparedStatement mockStatement, final boolean isFieldAccess) throws
+            SQLException {
         new Expectations() {{
             mockStatement.setObject(anyInt, any);
             result = new SQLException("executeUpdate object error");
@@ -3122,11 +3466,22 @@ public abstract class BasicSqlPStatementTestLogic {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "INSERT INTO STATEMENT_TEST_TABLE (ENTITY_ID, LONG_COL, BINARY_COL) VALUES (:id, :long, :binary)");
         Deencapsulation.setField(sut, mockStatement);
-        final TestEntity entity = new TestEntity();
-        entity.id = "44444";
-        entity.longCol = 100L;
-        entity.binaryCol = new byte[]{0x00, 0x01};
-        sut.executeUpdateByObject(entity);
+        final Object data;
+        if(!isFieldAccess){
+            final TestEntity entity = new TestEntity();
+            entity.id = "44444";
+            entity.longCol = 100L;
+            entity.binaryCol = new byte[]{0x00, 0x01};
+            data = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "44444";
+            entity.longCol = 100L;
+            entity.binaryCol = new byte[]{0x00, 0x01};
+            data = entity;
+        }
+        sut.executeUpdateByObject(data);
     }
 
     /**
@@ -3187,21 +3542,47 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void addBatchObject() throws Exception {
+        doAddBatchObject(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#addBatchObject(Object)}のテスト。(Fieldアクセステスト用)
+     * @throws Exception
+     */
+    @Test
+    public void addBatchObjectViaFieldAccess() throws Exception {
+        doAddBatchObject(true);
+    }
+
+    private void doAddBatchObject(boolean isFieldAccess) {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "INSERT INTO STATEMENT_TEST_TABLE (ENTITY_ID, LONG_COL, BINARY_COL) VALUES (:id, :longCol, :binaryCol)");
-        final TestEntity entity = new TestEntity();
-        entity.id = "44444";
-        entity.longCol = 100L;
-        entity.binaryCol = new byte[]{0x00, 0x01};
-        sut.addBatchObject(entity);
+        if(!isFieldAccess) {
+            final TestEntity entity = new TestEntity();
+            entity.id = "44444";
+            entity.longCol = 100L;
+            entity.binaryCol = new byte[] {0x00, 0x01};
+            sut.addBatchObject(entity);
+            assertThat("バッチサイズがインクリメントされる", sut.getBatchSize(), is(1));
 
-        assertThat("バッチサイズがインクリメントされる", sut.getBatchSize(), is(1));
+            entity.id = "55555";
+            entity.longCol = Long.MAX_VALUE;
+            sut.addBatchObject(entity);
+            assertThat("バッチサイズがインクリメントされる", sut.getBatchSize(), is(2));
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "44444";
+            entity.longCol = 100L;
+            entity.binaryCol = new byte[] {0x00, 0x01};
+            sut.addBatchObject(entity);
+            assertThat("バッチサイズがインクリメントされる", sut.getBatchSize(), is(1));
 
-        entity.id = "55555";
-        entity.longCol = Long.MAX_VALUE;
-        sut.addBatchObject(entity);
-        assertThat("バッチサイズがインクリメントされる", sut.getBatchSize(), is(2));
-
+            entity.id = "55555";
+            entity.longCol = Long.MAX_VALUE;
+            sut.addBatchObject(entity);
+            assertThat("バッチサイズがインクリメントされる", sut.getBatchSize(), is(2));
+        }
         sut.executeBatch();
         dbCon.commit();
 
@@ -3220,6 +3601,20 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test(expected = DbAccessException.class)
     public void addBatchObject_SQLException(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doAddBatchObject_SQLException(mockStatement, false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#addBatchObject(Object)}でSQLExcepitonが発生した場合、
+     * DbAccessExceptionが送出されること。(Fieldアクセステスト用)
+     */
+    @Test(expected = DbAccessException.class)
+    public void addBatchObject_SQLExceptionViaFieldAccess(@Mocked final PreparedStatement mockStatement) throws Exception {
+        doAddBatchObject_SQLException(mockStatement, true);
+    }
+
+    private void doAddBatchObject_SQLException(final PreparedStatement mockStatement, final boolean isFieldAccess) throws
+            SQLException {
         new Expectations() {{
             mockStatement.setObject(anyInt, any);
             result = new SQLException("addBatch object error");
@@ -3227,9 +3622,18 @@ public abstract class BasicSqlPStatementTestLogic {
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "INSERT INTO STATEMENT_TEST_TABLE (ENTITY_ID, LONG_COL, BINARY_COL) VALUES (:id, :long, :binary)");
         Deencapsulation.setField(sut, mockStatement);
-        final TestEntity entity = new TestEntity();
-        entity.id = "12345";
-        sut.addBatchObject(entity);
+        final Object data;
+        if(!isFieldAccess){
+            final TestEntity entity = new TestEntity();
+            entity.id = "12345";
+            data = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "12345";
+            data = entity;
+        }
+        sut.addBatchObject(data);
     }
 
     /**
@@ -3237,9 +3641,29 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_withIfCondition() throws Exception {
-        final TestEntity condition = new TestEntity();
-        condition.id = "1";
+        doRetrieve_withIfCondition(false);
+    }
 
+    /**
+     * {@link BasicSqlPStatement#retrieve(Object)}で可変条件(IF文)を持つSQLの場合(Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_withIfConditionViaFieldAccess() throws Exception {
+        doRetrieve_withIfCondition(true);
+    }
+
+    private void doRetrieve_withIfCondition(final boolean isFieldAccess) {
+        final Object condition;
+        if(!isFieldAccess){
+            final TestEntity entity = new TestEntity();
+            entity.id = "1";
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.id = "1";
+            condition = entity;
+        }
         ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE ENTITY_ID LIKE :id% AND $if(varcharCol) {VARCHAR_COL = :varcharCol}",
                 condition);
@@ -3247,14 +3671,26 @@ public abstract class BasicSqlPStatementTestLogic {
         SqlResultSet actual = sut.retrieve(condition);
         assertThat(actual.size(), is(3));
 
-        condition.varcharCol = "";
+        if(!isFieldAccess){
+            final TestEntity entity = (TestEntity) condition;
+            entity.varcharCol = "";
+        } else {
+            final TestFieldEntity entity = (TestFieldEntity) condition;
+            entity.varcharCol = "";
+        }
         sut = dbCon.prepareParameterizedSqlStatement(
                 "select * from STATEMENT_TEST_TABLE WHERE ENTITY_ID LIKE :id% AND $if(varcharCol) {VARCHAR_COL = :varcharCol}",
                 condition);
         actual = sut.retrieve(condition);
         assertThat(actual.size(), is(3));
 
-        condition.varcharCol = "a";
+        if(!isFieldAccess){
+            final TestEntity entity = (TestEntity) condition;
+            entity.varcharCol = "a";
+        } else {
+            final TestFieldEntity entity = (TestFieldEntity) condition;
+            entity.varcharCol = "a";
+        }
         sut = dbCon.prepareParameterizedSqlStatement(
                 "select * from STATEMENT_TEST_TABLE WHERE ENTITY_ID LIKE :id% AND $if(varcharCol) {VARCHAR_COL = :varcharCol}",
                 condition);
@@ -3267,8 +3703,29 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test
     public void retrieve_withInCondition() throws Exception {
-        final TestEntity condition = new TestEntity();
-        condition.varchars = new String[]{"a", "b"};
+        doRetrieve_withInCondition(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(Object)}でIN条件を持つSQL文の場合(Fieldアクセステスト用)
+     */
+    @Test
+    public void retrieve_withInConditionViaFieldAccess() throws Exception {
+        doRetrieve_withInCondition(true);
+    }
+
+    private void doRetrieve_withInCondition(final boolean isFieldAccess) {
+        final Object condition;
+        if(!isFieldAccess){
+            final TestEntity entity = new TestEntity();
+            entity.varchars = new String[]{"a", "b"};
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.varchars = new String[]{"a", "b"};
+            condition = entity;
+        }
         ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE VARCHAR_COL IN (:varchars[]) ORDER BY ENTITY_ID",
                 condition);
@@ -3287,7 +3744,13 @@ public abstract class BasicSqlPStatementTestLogic {
         assertThat(actual.get(0)
                 .getString("varcharCol"), is("b"));
 
-        condition.varchars = new String[0];
+        if(!isFieldAccess){
+            final TestEntity entity = (TestEntity) condition;
+            entity.varchars = new String[0];
+        } else {
+            final TestFieldEntity entity = (TestFieldEntity) condition;
+            entity.varchars = new String[0];
+        }
         sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE VARCHAR_COL IN (:varchars[]) ORDER BY ENTITY_ID",
                 condition);
@@ -3300,14 +3763,34 @@ public abstract class BasicSqlPStatementTestLogic {
      */
     @Test(expected = IllegalArgumentException.class)
     public void retrieve_invalidInCondition() throws Exception {
-        final TestEntity condition = new TestEntity();
-        condition.varchars = new String[]{"a", "b"};
+        doRetrieve_invalidInCondition(false);
+    }
+
+    /**
+     * {@link BasicSqlPStatement#retrieve(Object)}でIN条件が不正な場合 (Fieldアクセステスト用)
+     */
+    @Test(expected = IllegalArgumentException.class)
+    public void retrieve_invalidInConditionViaFieldAccess() throws Exception {
+        doRetrieve_invalidInCondition(true);
+    }
+
+    private void doRetrieve_invalidInCondition(final boolean isFieldAccess) {
+        final Object condition;
+        if(!isFieldAccess){
+            final TestEntity entity = new TestEntity();
+            entity.varchars = new String[]{"a", "b"};
+            condition = entity;
+        } else {
+            setFieldAccessMode();//Fieldアクセスモードに変更
+            final TestFieldEntity entity = new TestFieldEntity();
+            entity.varchars = new String[]{"a", "b"};
+            condition = entity;
+        }
         final ParameterizedSqlPStatement sut = dbCon.prepareParameterizedSqlStatement(
                 "SELECT * FROM STATEMENT_TEST_TABLE WHERE VARCHAR_COL IN (:varchars[9999999999]) ORDER BY ENTITY_ID",
                 condition);
         sut.retrieve(condition);
     }
-
 
     /**
      * {@link BasicSqlPStatement#getGeneratedKeys()}でSQLExceptionが発生する場合、
@@ -3397,7 +3880,7 @@ public abstract class BasicSqlPStatementTestLogic {
     }
 
     /**
-     * {@link BasicSqlPStatement#clearParameters()}でSQLExceptinoが発生する場合
+     * {@link BasicSqlPStatement#clearParameters()}でSQLExceptionが発生する場合
      * DbAccessExceptionが送出されること
      */
     @Test(expected = DbAccessException.class)

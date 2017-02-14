@@ -1150,8 +1150,11 @@ public class BasicSqlPStatement implements SqlPStatement, ParameterizedSqlPState
                 anUpdatePreHookObjectHandlerList.handle(data);
             }
         }
-
-        setMap(BeanUtil.createMapAndCopy(data));
+        if(DbUtil.isFieldAccess()) {
+            setMap(DbUtil.createMapAndCopy(data));
+        } else {
+            setMap(BeanUtil.createMapAndCopy(data));
+        }
     }
 
     /**
