@@ -997,14 +997,14 @@ public abstract class SqlRowTestLogic {
      * @throws Exception
      */
     @Test
-    public void name() throws Exception {
-        mapMethod(new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>(),
+    public void testMapMethod() throws Exception {
+        assertMapSqlRow(new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>(),
                 new HashMap<String, String>()));
 
-        mapMethod(new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>()));
+        assertMapSqlRow(new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>()));
     }
 
-    private void mapMethod(final SqlRow sut) throws Exception {
+    private void assertMapSqlRow(final SqlRow sut) throws Exception {
         assertThat("初期化後のサイズは0", sut.size(), is(0));
         assertThat("初期化直後は空", sut.isEmpty(), is(true));
         assertThat("値を追加した場合、古い値が存在しないのでnullが返却される。", sut.put("key1", "value1"), is(nullValue()));
