@@ -990,14 +990,21 @@ public abstract class SqlRowTestLogic {
 
     /**
      * Mapインタフェースを実装したメソッド全般のテスト
+     * <p/>
+     * Mapを引数に取るコンストラクタを使用してSqlRowを生成し、
+     * どちらも同じ結果になることも合わせて確認する。
      *
      * @throws Exception
      */
     @Test
-    public void mapMethod() throws Exception {
-        SqlRow sut = new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>(),
-                new HashMap<String, String>());
+    public void testMapMethod() throws Exception {
+        assertMapSqlRow(new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>(),
+                new HashMap<String, String>()));
 
+        assertMapSqlRow(new SqlRow(new HashMap<String, Object>(), new HashMap<String, Integer>()));
+    }
+
+    private void assertMapSqlRow(final SqlRow sut) throws Exception {
         assertThat("初期化後のサイズは0", sut.size(), is(0));
         assertThat("初期化直後は空", sut.isEmpty(), is(true));
         assertThat("値を追加した場合、古い値が存在しないのでnullが返却される。", sut.put("key1", "value1"), is(nullValue()));
