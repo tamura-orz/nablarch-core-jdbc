@@ -1,11 +1,9 @@
 package nablarch.core.db.transaction;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.junit.matchers.JUnitMatchers.containsString;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -31,7 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import mockit.NonStrictExpectations;
+import mockit.Expectations;
 import mockit.Verifications;
 
 /**
@@ -265,14 +263,15 @@ public class SimpleDbTransactionManagerTest {
 
     /**
      * 既に使用されているコネクション名が指定された場合は、既に使用されています例外が発生すること
-     * また、この場合には{@link ConnectionFactory#getConnection()}が呼び出されないことを検証する。
+     * また、この場合には{@link ConnectionFactory#getConnection(String)}が呼び出されないことを検証する。
      */
     @Test
     public void connectionNameAlreadyUsed() throws Exception {
         final ConnectionFactory connectionFactory = container.getComponent("connectionFactory");
 
-        new NonStrictExpectations(connectionFactory) {{
+        new Expectations(connectionFactory) {{
             connectionFactory.getConnection("test");
+            minTimes = 0;
         }};
 
         try {

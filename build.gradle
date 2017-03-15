@@ -30,17 +30,6 @@ apply plugin: 'cobertura'
 sourceCompatibility=JavaVersion.VERSION_1_6
 targetCompatibility=JavaVersion.VERSION_1_6
 
-configurations.all {
-  resolutionStrategy {
-    // nablarch-coreのバージョンを固定化する
-    force "com.nablarch.framework:nablarch-core:${nablarchCoreVersion}"
-  }
-}
-
-configurations {
-  testCompile.exclude group:'*', module: 'hamcrest-core'
-}
-
 dependencies {
   compile "com.nablarch.framework:nablarch-core-transaction:${nablarchCoreTransactionVersion}"
   compile "com.nablarch.framework:nablarch-core-applog:${nablarchCoreApplogVersion}"
@@ -51,16 +40,11 @@ dependencies {
   testCompile 'org.hamcrest:hamcrest-all:1.3'
 
 
-  testCompile 'com.nablarch.dev:nablarch-test-support:0.0.5'
-  testCompile 'com.oracle:ojdbc6:11.2.0.2.0'
+  testCompile 'com.nablarch.dev:nablarch-test-support:0.0.7'
   testCompile "com.nablarch.framework:nablarch-core-repository:${nablarchCoreRepositoryVersion}"
-  testCompile 'com.nablarch.framework:nablarch-core-applog:1.0.1'
+  testCompile "com.nablarch.framework:nablarch-core-applog:${nablarchCoreApplogVersion}"
 
-  testRuntime 'com.sun.messaging.mq:fscontext:4.4.2'   // including com.sun.jndi:fscontext, com.sun.jndi:providerutil
   testRuntime 'org.slf4j:slf4j-nop:1.7.21'
-  testCompile 'com.oracle:ucp:11.2.0.3.0'
-  testCompile 'com.oracle:ojdbc6:11.2.0.2.0'
-
 }
 
 test {
