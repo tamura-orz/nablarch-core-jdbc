@@ -1,8 +1,7 @@
 package nablarch.core.db.cache;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
-import static org.junit.matchers.JUnitMatchers.containsString;
 
 import nablarch.core.db.cache.statement.BoundParameters;
 import nablarch.core.db.statement.ParameterHolder;

@@ -1,8 +1,6 @@
 package nablarch.core.db.connection;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -138,7 +136,7 @@ public class BasicDbConnectionFactoryForDataSourceTest {
     }
 
     /**
-     * {@link BasicDbConnectionFactoryForDataSource#getConnection()}でエラーが発生した場合のテスト。
+     * {@link BasicDbConnectionFactoryForDataSource#getConnection(String)}でエラーが発生した場合のテスト。
      * <p />
      * connection取得時に失敗した場合は、{@link DbAccessExceptionFactory}に処理を委譲することを確認する。
      *
@@ -155,7 +153,7 @@ public class BasicDbConnectionFactoryForDataSourceTest {
         // 例外を委譲されるクラスの振る舞い
         new Expectations() {{
             dbAccessExceptionFactory.createDbAccessException("failed to get database connection.", nativeException, null);
-            returns(dbAccessException);
+            result = dbAccessException;
         }};
 
         factory.setDataSource(dataSource);

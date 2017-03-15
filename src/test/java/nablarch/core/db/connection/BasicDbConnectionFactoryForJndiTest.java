@@ -1,9 +1,6 @@
 package nablarch.core.db.connection;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -54,7 +51,7 @@ public class BasicDbConnectionFactoryForJndiTest {
     private static final String CONNECTION_NAME = TransactionContext.DEFAULT_TRANSACTION_CONTEXT_KEY;
 
     /**
-     * {@link BasicDbConnectionFactoryForJndi#getConnection()}のテスト。
+     * {@link BasicDbConnectionFactoryForJndi#getConnection(String)}のテスト。
      * <br/>
      * <p/>
      * JNDIからlookupしたdatasourceから取得したconnectionを使用して処理することを確認する。
@@ -83,7 +80,7 @@ public class BasicDbConnectionFactoryForJndiTest {
     }
 
     /**
-     * {@link BasicDbConnectionFactoryForJndi#getConnection()}のテスト。
+     * {@link BasicDbConnectionFactoryForJndi#getConnection(String)}のテスト。
      * <p />
      *  指定したプロパティを利用してlookupすることを検証するためにInitialContextに指定したインスタンスを渡すことを確認する。
      *
@@ -181,7 +178,7 @@ public class BasicDbConnectionFactoryForJndiTest {
     }
 
     /**
-     * {@link BasicDbConnectionFactoryForJndi#getConnection()}の異常系テスト。
+     * {@link BasicDbConnectionFactoryForJndi#getConnection(String)}の異常系テスト。
      * <p/>
      * JNDIのプロバイダが存在しない場合のテスト。
      *
@@ -220,7 +217,7 @@ public class BasicDbConnectionFactoryForJndiTest {
     }
 
     /**
-     * {@link BasicDbConnectionFactoryForJndi#getConnection()}の異常系テスト。
+     * {@link BasicDbConnectionFactoryForJndi#getConnection(String)}の異常系テスト。
      * <p />
      * JNDIでlookupしたdataSourceからconnectionを取得した際に例外が発生した場合。
      *
@@ -253,7 +250,7 @@ public class BasicDbConnectionFactoryForJndiTest {
         // DataSourceが送出した例外を渡すことをverifyする。
         new Expectations() {{
             exceptionFactory.createDbAccessException(message, nativeException, null);
-            returns(expected);
+            result = expected;
         }};
 
         BasicDbConnectionFactoryForJndi forJndi = new BasicDbConnectionFactoryForJndi();
@@ -270,7 +267,7 @@ public class BasicDbConnectionFactoryForJndiTest {
     }
 
     /**
-     * {@link BasicDbConnectionFactoryForJndi#getConnection()}のテスト。
+     * {@link BasicDbConnectionFactoryForJndi#getConnection(String)}のテスト。
      * <br/>
      * <p/>
      * JNDIのルックアップ先のプールサイズを超えてデータベース接続の取得要求をした場合
